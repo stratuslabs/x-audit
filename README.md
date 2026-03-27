@@ -1,6 +1,6 @@
 # x-audit
 
-Analyze any X/Twitter user's following list. One command → beautiful shareable report.
+Analyze any X/Twitter account's followers. One command → beautiful shareable report.
 
 ```bash
 npx x-audit @username
@@ -8,22 +8,31 @@ npx x-audit @username
 
 ## What it does
 
-1. Scrapes the target user's following list via browser automation
-2. Analyzes bios — professional categories, locations, keywords, verified status
-3. Generates a polished dark-mode dashboard
-4. Publishes to [gui.new](https://gui.new) and gives you a shareable link
+1. Fetches up to 1,000 followers via [CLIX](https://github.com/spideystreet/clix) (no API key needed)
+2. Analyzes bios — professional categories, locations, follower tiers, keywords
+3. Benchmarks your audience against X platform averages
+4. Generates a polished dark-mode dashboard
+5. Publishes to [gui.new](https://gui.new) — shareable link in seconds
 
-No X/Twitter API key needed. No paid tier required.
+## Prerequisites
+
+[CLIX](https://github.com/spideystreet/clix) must be installed and authenticated:
+
+```bash
+uv pip install clix0
+clix auth login --browser chrome
+```
 
 ## Install
 
 ```bash
-# Zero install — just run it
-npx x-audit @username
+# Run directly from GitHub
+npx github:stratuslabs/x-audit @username
 
-# Or install globally
-npm i -g x-audit
-x-audit @username
+# Or clone and run
+git clone https://github.com/stratuslabs/x-audit.git
+cd x-audit && npm install
+node bin/x-audit.js @username
 ```
 
 ## Options
@@ -32,29 +41,29 @@ x-audit @username
 Usage: x-audit [options] <handle>
 
 Options:
-  -l, --limit <n>     Max profiles to scrape (default: 500)
-  --json              Output raw JSON analysis
-  --html <file>       Save HTML report locally
-  --gui-key <key>     gui.new Pro API key for 30d expiry
-  --no-headless       Show browser window
-  --no-gui            Skip publishing to gui.new
-  -h, --help          Show help
+  -l, --limit <n>      Max profiles to scrape (default: 1000)
+  --mode <type>        followers or following (default: followers)
+  --json               Output raw JSON analysis
+  --html <file>        Save HTML report locally
+  --gui-key <key>      gui.new Pro API key for 30d expiry
+  --no-gui             Skip publishing to gui.new
+  -h, --help           Show help
 ```
-
-## Authentication
-
-X requires login to view following lists. On first run, a browser window opens — log in once, and your session is saved to `~/.x-audit/cookies.json` for future runs.
 
 ## What's in the report
 
 - **Summary cards** — total analyzed, top category, verified %, bio coverage
 - **Professional breakdown** — Developer, Designer, Founder, Marketer, Creator, etc.
-- **Location distribution** — parsed from bios (📍, "Based in", etc.)
+- **Location distribution** — parsed from bios and profile location fields
 - **Bio keyword cloud** — most common terms across all bios
+- **Follower size tiers** — 1K+, 5K+, 10K+, 25K+, 50K+, 100K+
+- **Notable followers** — top 10 accounts by follower count
+- **Audience vs Platform benchmarks** — your audience compared to X averages
+- **Key insights** — auto-generated narrative analysis
 
 ## How it works
 
-Uses [Playwright](https://playwright.dev/) to scroll through X's following page and extract profile data from rendered DOM elements. No API keys, no scraping services — just a headless browser doing what you'd do manually.
+Uses [CLIX](https://github.com/spideystreet/clix) to fetch follower data via X's internal GraphQL API with automatic pagination. No official API key needed — just browser cookie auth.
 
 Reports are hosted on [gui.new](https://gui.new) — HTML in, shareable URL out.
 

@@ -11,11 +11,11 @@ program
   .name('x-audit')
   .description('Analyze any X/Twitter user\'s following list')
   .argument('<handle>', 'X/Twitter handle (with or without @)')
-  .option('-l, --limit <n>', 'Max profiles to scrape', parseInt, 500)
+  .option('-l, --limit <n>', 'Max profiles to scrape (default: 1000)', parseInt, 1000)
+  .option('--mode <type>', 'followers or following (default: followers)', 'followers')
   .option('--json', 'Output raw JSON analysis')
   .option('--html <file>', 'Save HTML report locally')
   .option('--gui-key <key>', 'gui.new Pro API key for 30d expiry')
-  .option('--no-headless', 'Show browser window')
   .option('--no-gui', 'Skip publishing to gui.new')
   .action(async (handle, opts) => {
     handle = handle.replace(/^@/, '');
@@ -27,8 +27,8 @@ program
     let profiles;
     try {
       profiles = await scrape(handle, {
-        limit: parseInt(opts.limit) || 500,
-        headless: opts.headless !== false,
+        limit: opts.limit || 1000,
+        mode: opts.mode || 'followers',
       });
     } catch (err) {
       console.error(`\n❌ Scraping failed: ${err.message}`);
