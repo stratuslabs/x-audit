@@ -377,15 +377,17 @@ export function render(analysis) {
   ${notable.length > 0 ? `
   <div class="section">
     <h2><span class="icon">⭐</span> Notable Followers</h2>
+    <div style="font-size: 0.75rem; color: #71717a; margin-bottom: 0.75rem;">Ranked by quality (follower count weighted by selectivity — follow-everyone accounts penalized)</div>
     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
       ${notable.map((n, i) => `
       <div style="display: flex; align-items: center; gap: 0.75rem; background: #18181b; border: 1px solid #27272a; border-radius: 10px; padding: 0.75rem 1rem;">
         <div style="color: #52525b; font-size: 0.75rem; width: 20px; text-align: center;">${i + 1}</div>
         <div style="flex: 1; min-width: 0;">
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
             <span style="font-weight: 600; color: #fafafa;">@${n.handle}</span>
             ${n.verified ? '<span style="color: #3b82f6;">✓</span>' : ''}
             <span style="color: #52525b; font-size: 0.75rem;">${(n.followersCount >= 1000000 ? (n.followersCount / 1000000).toFixed(1) + 'M' : n.followersCount >= 1000 ? (n.followersCount / 1000).toFixed(1) + 'K' : n.followersCount)} followers</span>
+            ${n.ratio ? `<span style="color: ${parseFloat(n.ratio) > 5 ? '#10b981' : parseFloat(n.ratio) < 1 ? '#f59e0b' : '#71717a'}; font-size: 0.7rem; background: ${parseFloat(n.ratio) > 5 ? '#10b98122' : parseFloat(n.ratio) < 1 ? '#f59e0b22' : '#27272a'}; padding: 0.1rem 0.4rem; border-radius: 4px;">${n.ratio}:1 ratio</span>` : ''}
           </div>
           ${n.bio ? `<div style="color: #71717a; font-size: 0.8rem; margin-top: 0.2rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${n.bio}</div>` : ''}
         </div>

@@ -171,15 +171,55 @@ export function analyze(profiles, handle) {
     }
   }
 
-  // Notable followers (top by follower count)
+  // Notable followers (weighted by quality, not just raw follower count)
+  // Formula: Penalize accounts that follow way more than they're followed by
+  // A 100K follower account that follows 500 people is more notable than one following 95K
   const notable = [...profiles]
     .filter(p => p.followersCount != null && p.followersCount > 0)
-    .sort((a, b) => (b.followersCount || 0) - (a.followersCount || 0))
+    .map(p => {
+      const followers = p.followersCount || 0;
+      const following = p.followingCount || 1;
+      const ratio = followers / following;
+      
+      // Base score is follower count
+      let score = followers;
+      
+      // Heavily penalize follow-everyone accounts (following > 2x followers)
+      if (following > followers * 2) {
+        score *= 0.1; // 90% penalty
+      }
+      // Moderate penalty for high-follow accounts (following > followers)
+      else if (following > followers) {
+        score *= 0.4; // 60% penalty
+      }
+      // Slight penalty for close ratios (following > followers * 0.5)
+      else if (following > followers * 0.5) {
+        score *= 0.7; // 30% penalty
+      }
+      // Bonus for selective followers (ratio > 5:1)
+      else if (ratio > 5) {
+        score *= 1.3; // 30% bonus
+      }
+      // Extra bonus for very selective (ratio > 20:1)
+      if (ratio > 20) {
+        score *= 1.2; // Additional 20% bonus
+      }
+      
+      // Verified accounts get a small boost
+      if (p.verified) {
+        score *= 1.1;
+      }
+      
+      return { ...p, notabilityScore: score, ratio };
+    })
+    .sort((a, b) => b.notabilityScore - a.notabilityScore)
     .slice(0, 10)
     .map(p => ({
       handle: p.handle,
       displayName: p.displayName,
       followersCount: p.followersCount,
+      followingCount: p.followingCount,
+      ratio: p.ratio.toFixed(1),
       bio: (p.bio || '').substring(0, 80),
       verified: p.verified,
     }));
