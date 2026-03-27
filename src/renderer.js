@@ -1,7 +1,7 @@
 export function render(analysis) {
-  const { handle, total, verified, hasBio, locationsDetected, categories, locations, keywords, generatedAt } = analysis;
+  const { handle, total, verified, hasBio, locationsDetected, categories, locations, keywords, followerTiers = [], notable = [], insights = [], generatedAt } = analysis;
   
-  const topCategory = categories[0];
+  const topCategory = categories.find(c => c.name !== 'Other') || categories[0];
   const topLocation = locations[0];
   const date = new Date(generatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -345,6 +345,64 @@ export function render(analysis) {
     <h2><span class="icon">🏷️</span> Bio Keywords</h2>
     <div class="keyword-cloud">
       ${wordCloud}
+    </div>
+  </div>
+  ` : ''}
+
+  ${followerTiers.length > 0 ? `
+  <div class="section">
+    <h2><span class="icon">📊</span> Follower Size Distribution</h2>
+    <div style="background: #18181b; border: 1px solid #27272a; border-radius: 12px; overflow: hidden;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+        <thead>
+          <tr style="border-bottom: 1px solid #27272a;">
+            <th style="text-align: left; padding: 0.75rem 1rem; color: #71717a; font-weight: 500;">Threshold</th>
+            <th style="text-align: right; padding: 0.75rem 1rem; color: #71717a; font-weight: 500;">Count</th>
+            <th style="text-align: right; padding: 0.75rem 1rem; color: #71717a; font-weight: 500;">% of Followers</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${followerTiers.map(t => `
+          <tr style="border-bottom: 1px solid #1e1e21;">
+            <td style="padding: 0.6rem 1rem; color: #fafafa; font-weight: 500;">${t.threshold}</td>
+            <td style="text-align: right; padding: 0.6rem 1rem; color: #d4d4d8;">${t.count.toLocaleString()}</td>
+            <td style="text-align: right; padding: 0.6rem 1rem; color: #3b82f6; font-weight: 500;">${t.pct}%</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  ` : ''}
+
+  ${notable.length > 0 ? `
+  <div class="section">
+    <h2><span class="icon">⭐</span> Notable Followers</h2>
+    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+      ${notable.map((n, i) => `
+      <div style="display: flex; align-items: center; gap: 0.75rem; background: #18181b; border: 1px solid #27272a; border-radius: 10px; padding: 0.75rem 1rem;">
+        <div style="color: #52525b; font-size: 0.75rem; width: 20px; text-align: center;">${i + 1}</div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-weight: 600; color: #fafafa;">@${n.handle}</span>
+            ${n.verified ? '<span style="color: #3b82f6;">✓</span>' : ''}
+            <span style="color: #52525b; font-size: 0.75rem;">${(n.followersCount >= 1000000 ? (n.followersCount / 1000000).toFixed(1) + 'M' : n.followersCount >= 1000 ? (n.followersCount / 1000).toFixed(1) + 'K' : n.followersCount)} followers</span>
+          </div>
+          ${n.bio ? `<div style="color: #71717a; font-size: 0.8rem; margin-top: 0.2rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${n.bio}</div>` : ''}
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>
+  ` : ''}
+
+  ${insights.length > 0 ? `
+  <div class="section">
+    <h2><span class="icon">💡</span> Key Insights</h2>
+    <div style="background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 1.25rem;">
+      ${insights.map(ins => `
+      <div style="display: flex; gap: 0.75rem; margin-bottom: 0.75rem; align-items: flex-start;">
+        <span style="color: #3b82f6; flex-shrink: 0;">→</span>
+        <span style="color: #d4d4d8; font-size: 0.875rem; line-height: 1.5;">${ins}</span>
+      </div>`).join('')}
     </div>
   </div>
   ` : ''}

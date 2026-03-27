@@ -34,8 +34,8 @@ const LOCATION_PATTERNS = [
 ];
 
 const KNOWN_LOCATIONS = [
-  'san francisco', 'sf', 'nyc', 'new york', 'london', 'berlin', 'paris',
-  'los angeles', 'la', 'seattle', 'austin', 'toronto', 'miami', 'boston',
+  'san francisco', 'nyc', 'new york', 'london', 'berlin', 'paris',
+  'los angeles', 'seattle', 'austin', 'toronto', 'miami', 'boston',
   'chicago', 'denver', 'portland', 'amsterdam', 'singapore', 'tokyo',
   'bangalore', 'mumbai', 'dubai', 'lisbon', 'remote', 'worldwide',
   'bay area', 'silicon valley', 'brooklyn', 'manhattan', 'oakland',
@@ -154,7 +154,57 @@ export function analyze(profiles, handle) {
   
   // Bios with content
   const hasBio = profiles.filter(p => p.bio && p.bio.length > 5).length;
+
+  // Follower tiers (only if we have follower count data)
+  const thresholds = [1000, 5000, 10000, 25000, 50000, 100000];
+  const followerTiers = [];
+  const profilesWithCount = profiles.filter(p => p.followersCount != null && p.followersCount > 0);
   
+  if (profilesWithCount.length > 0) {
+    for (const t of thresholds) {
+      const count = profilesWithCount.filter(p => p.followersCount >= t).length;
+      followerTiers.push({
+        threshold: t >= 1000 ? `${t / 1000}K+` : `${t}+`,
+        count,
+        pct: ((count / total) * 100).toFixed(1),
+      });
+    }
+  }
+
+  // Notable followers (top by follower count)
+  const notable = [...profiles]
+    .filter(p => p.followersCount != null && p.followersCount > 0)
+    .sort((a, b) => (b.followersCount || 0) - (a.followersCount || 0))
+    .slice(0, 10)
+    .map(p => ({
+      handle: p.handle,
+      displayName: p.displayName,
+      followersCount: p.followersCount,
+      bio: (p.bio || '').substring(0, 80),
+      verified: p.verified,
+    }));
+
+  // Generate insights
+  const insights = [];
+  const topCat = categories.find(c => c.name !== 'Other');
+  if (topCat && topCat.pct > 3) {
+    insights.push(`Your audience skews heavily ${topCat.name} — ${topCat.pct}% of your followers identify as ${topCat.name} in their bio.`);
+  }
+  if (followerTiers.length > 0) {
+    const tier1k = followerTiers.find(t => t.threshold === '1K+');
+    const tier100k = followerTiers.find(t => t.threshold === '100K+');
+    if (tier1k && parseFloat(tier1k.pct) > 15) {
+      insights.push(`${tier1k.pct}% of your followers have 1K+ followers themselves — that's a high-quality, high-reach audience.`);
+    }
+    if (tier100k && tier100k.count > 10) {
+      insights.push(`You have ${tier100k.count} followers with 100K+ followers. For a ~${(total / 1000).toFixed(1)}K account, that's unusually strong.`);
+    }
+  }
+  if (locations.length > 0) {
+    const topLocs = locations.slice(0, 3).map(l => l.name).join(', ');
+    insights.push(`Top 3 locations: ${topLocs}. ${locationsDetected > 0 ? `${Math.round((locationsDetected / total) * 100)}% of bios mention a location.` : ''}`);
+  }
+
   return {
     handle,
     total,
@@ -173,6 +223,9 @@ export function analyze(profiles, handle) {
     categories,
     locations,
     keywords,
+    followerTiers,
+    notable,
+    insights,
     generatedAt: new Date().toISOString(),
   };
 }
