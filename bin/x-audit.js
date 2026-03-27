@@ -1,17 +1,24 @@
 #!/usr/bin/env node
 
 import { program } from 'commander';
+import { exec } from 'child_process';
+import os from 'os';
 import { scrape } from '../src/scraper.js';
 import { analyze } from '../src/analyzer.js';
 import { render } from '../src/renderer.js';
 import { publish } from '../src/publisher.js';
 import fs from 'fs';
 
+function openUrl(url) {
+  const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
+  exec(`${cmd} "${url}"`);
+}
+
 program
   .name('x-audit')
   .description('Analyze any X/Twitter user\'s following list')
   .argument('<handle>', 'X/Twitter handle (with or without @)')
-  .option('-l, --limit <n>', 'Max profiles to scrape (default: 1000)', parseInt, 1000)
+  .option('-l, --limit <n>', 'Max profiles to scrape (default: 1000)', (v) => parseInt(v, 10), 1000)
   .option('--mode <type>', 'followers or following (default: followers)', 'followers')
   .option('--json', 'Output raw JSON analysis')
   .option('--html <file>', 'Save HTML report locally')
@@ -67,18 +74,19 @@ program
         const url = await publish(html, handle, opts.guiKey);
         console.log(`\n✅ Done!\n`);
         console.log(`🔗 ${url}\n`);
+        openUrl(url);
       } catch (err) {
         console.error(`\n⚠️  gui.new publish failed: ${err.message}`);
-        const fallback = `/tmp/x-audit-${handle}.html`;
+        const fallback = `${os.tmpdir()}/x-audit-${handle}.html`;
         fs.writeFileSync(fallback, html);
-        console.log(`   Saved locally to ${fallback}\n`);
+        console.log(`   Saved locally — opening in browser...\n`);
+        openUrl(`file://${fallback}`);
       }
     } else {
-      if (!opts.html) {
-        const fallback = `/tmp/x-audit-${handle}.html`;
-        fs.writeFileSync(fallback, html);
-        console.log(`\n✅ Saved to ${fallback}\n`);
-      }
+      const fallback = opts.html || `${os.tmpdir()}/x-audit-${handle}.html`;
+      if (!opts.html) fs.writeFileSync(fallback, html);
+      console.log(`\n✅ Saved to ${fallback}\n`);
+      openUrl(`file://${fallback}`);
     }
   });
 
