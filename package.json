@@ -1,6 +1,6 @@
 {
   "name": "x-audit",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Analyze any X/Twitter user's following list. Beautiful shareable report via gui.new.",
   "type": "module",
   "bin": {
