@@ -1,5 +1,5 @@
 export function render(analysis) {
-  const { handle, total, verified, hasBio, locationsDetected, categories, locations, keywords, followerTiers = [], notable = [], benchmarks = [], insights = [], generatedAt } = analysis;
+  const { handle, total, verified, hasBio, locationsDetected, categories, locations, keywords, followerTiers = [], notable = [], benchmarks = [], qualityBreakdown, flagged = [], insights = [], generatedAt } = analysis;
   
   const topCategory = categories.find(c => c.name !== 'Other') || categories[0];
   const topLocation = locations[0];
@@ -418,6 +418,46 @@ export function render(analysis) {
         </tbody>
       </table>
     </div>
+  </div>
+  ` : ''}
+
+  ${qualityBreakdown ? `
+  <div class="section">
+    <h2><span class="icon">🛡️</span> Follower Quality</h2>
+    <div class="cards" style="margin-bottom: 1rem;">
+      <div class="card">
+        <div class="card-label">Clean</div>
+        <div class="card-value" style="color: #10b981;">${qualityBreakdown.clean.pct}%</div>
+        <div class="card-detail">${qualityBreakdown.clean.count.toLocaleString()} accounts</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Suspicious</div>
+        <div class="card-value" style="color: #f59e0b;">${qualityBreakdown.suspicious.pct}%</div>
+        <div class="card-detail">${qualityBreakdown.suspicious.count.toLocaleString()} accounts</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Low Quality</div>
+        <div class="card-value" style="color: #ef4444;">${qualityBreakdown.lowQuality.pct}%</div>
+        <div class="card-detail">${qualityBreakdown.lowQuality.count.toLocaleString()} accounts</div>
+      </div>
+    </div>
+    ${flagged.length > 0 ? `
+    <details style="background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 0;">
+      <summary style="padding: 1rem; cursor: pointer; color: #d4d4d8; font-size: 0.875rem; user-select: none;">
+        🚩 ${flagged.length} flagged accounts (click to expand)
+      </summary>
+      <div style="padding: 0 1rem 1rem;">
+        ${flagged.slice(0, 15).map(f => `
+        <div style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #1e1e21;">
+          <div style="min-width: 32px; height: 32px; border-radius: 50%; background: ${f.score >= 70 ? '#ef4444' : '#f59e0b'}22; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: ${f.score >= 70 ? '#ef4444' : '#f59e0b'}; font-weight: 700;">${f.score}</div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 0.85rem;"><span style="color: #fafafa; font-weight: 500;">@${f.handle}</span></div>
+            <div style="font-size: 0.75rem; color: #71717a; margin-top: 0.15rem;">${f.reasons.join(' · ')}</div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </details>
+    ` : ''}
   </div>
   ` : ''}
 

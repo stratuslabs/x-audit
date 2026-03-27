@@ -60,6 +60,8 @@ for u in all_users[:limit]:
         "verified": u.verified,
         "followers_count": u.followers_count,
         "following_count": u.following_count,
+        "tweet_count": getattr(u, 'tweet_count', None),
+        "profile_image_url": getattr(u, 'profile_image_url', ''),
     })
 
 print(json.dumps(result))
@@ -84,6 +86,9 @@ print(f"Done: {len(result)} total", file=sys.stderr)
       bio: [d.bio, d.location].filter(Boolean).join(' | '),
       verified: d.verified,
       followersCount: d.followers_count,
+      followingCount: d.following_count,
+      tweetCount: d.tweet_count,
+      profileImageUrl: d.profile_image_url,
       location: d.location,
     }));
   } catch (err) {

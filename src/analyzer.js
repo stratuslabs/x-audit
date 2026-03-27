@@ -184,6 +184,64 @@ export function analyze(profiles, handle) {
       verified: p.verified,
     }));
 
+  // Bot / low quality scoring
+  const botScores = [];
+  for (const p of profiles) {
+    let score = 0;
+    const reasons = [];
+
+    // No bio
+    if (!p.bio || p.bio.length < 5) { score += 25; reasons.push('No bio'); }
+    
+    // Following/follower ratio way off (following tons, very few followers)
+    const fc = p.followersCount || 0;
+    const fing = p.followingCount || 0;
+    if (fing > 500 && fc < 20) { score += 30; reasons.push(`Following ${fing.toLocaleString()}, only ${fc} followers`); }
+    else if (fing > 1000 && fc > 0 && fing / fc > 50) { score += 25; reasons.push(`Following/follower ratio: ${Math.round(fing / fc)}:1`); }
+    else if (fing > 500 && fc > 0 && fing / fc > 20) { score += 15; reasons.push(`High follow ratio: ${Math.round(fing / fc)}:1`); }
+    
+    // Zero tweets
+    if (p.tweetCount !== undefined && p.tweetCount === 0) { score += 20; reasons.push('Zero tweets'); }
+    else if (p.tweetCount !== undefined && p.tweetCount < 5) { score += 10; reasons.push(`Only ${p.tweetCount} tweets`); }
+    
+    // Default profile image
+    if (p.profileImageUrl?.includes('default_profile')) { score += 20; reasons.push('Default avatar'); }
+    
+    // Random handle pattern (lots of numbers at end)
+    if (/\d{6,}/.test(p.handle)) { score += 15; reasons.push('Auto-generated handle'); }
+    
+    // Spam bio keywords
+    const bioLower = (p.bio || '').toLowerCase();
+    const spamKeywords = ['follow back', 'follow me', 'dm me', 'follow 4 follow', 'f4f', '18+', 'onlyfans', 'cashapp', '$cashtag'];
+    for (const kw of spamKeywords) {
+      if (bioLower.includes(kw)) { score += 15; reasons.push(`Bio contains "${kw}"`); break; }
+    }
+    
+    // Very new account (no created_at data from CLIX by default, skip if not available)
+    
+    botScores.push({
+      handle: p.handle,
+      displayName: p.displayName,
+      score: Math.min(score, 100),
+      reasons,
+      followersCount: fc,
+      followingCount: fing,
+      bio: (p.bio || '').substring(0, 60),
+      verified: p.verified,
+    });
+  }
+  
+  // Sort by score descending
+  const flagged = botScores.filter(b => b.score >= 40).sort((a, b) => b.score - a.score);
+  const suspicious = botScores.filter(b => b.score >= 25 && b.score < 40).length;
+  const clean = botScores.filter(b => b.score < 25).length;
+  
+  const qualityBreakdown = {
+    clean: { count: clean, pct: Math.round((clean / total) * 100) },
+    suspicious: { count: suspicious, pct: Math.round((suspicious / total) * 100) },
+    lowQuality: { count: flagged.length, pct: Math.round((flagged.length / total) * 100) },
+  };
+
   // Platform benchmarks (X/Twitter averages for context)
   const benchmarks = [];
   const designerPct = categories.find(c => c.name === 'Designer')?.pct || 0;
@@ -249,6 +307,8 @@ export function analyze(profiles, handle) {
     followerTiers,
     notable,
     benchmarks,
+    qualityBreakdown,
+    flagged: flagged.slice(0, 25),
     insights,
     generatedAt: new Date().toISOString(),
   };
