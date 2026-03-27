@@ -1,13 +1,86 @@
-import { execSync } from 'child_process';
+import { execSync, spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
+import readline from 'readline';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+function commandExists(cmd) {
+  try {
+    execSync(`which ${cmd}`, { stdio: 'pipe' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function prompt(question) {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise(resolve => {
+    rl.question(question, answer => {
+      rl.close();
+      resolve(answer.toLowerCase().trim());
+    });
+  });
+}
+
+async function ensureDependencies() {
+  // Check for uv (fast Python package manager)
+  if (!commandExists('uv')) {
+    console.error('\n⚠️  Missing dependency: uv (Python package manager)');
+    console.error('   x-audit uses uv to run CLIX for Twitter/X API access.\n');
+    
+    const answer = await prompt('   Install uv now? [Y/n] ');
+    if (answer === 'n' || answer === 'no') {
+      throw new Error('uv is required. Install manually: curl -LsSf https://astral.sh/uv/install.sh | sh');
+    }
+    
+    console.log('\n   Installing uv...');
+    try {
+      execSync('curl -LsSf https://astral.sh/uv/install.sh | sh', { 
+        stdio: 'inherit',
+        shell: true 
+      });
+      // Source the shell to get uv in path
+      process.env.PATH = `${os.homedir()}/.local/bin:${process.env.PATH}`;
+      console.log('   ✅ uv installed!\n');
+    } catch (err) {
+      throw new Error('Failed to install uv. Install manually: curl -LsSf https://astral.sh/uv/install.sh | sh');
+    }
+  }
+
+  // Check if CLIX is authenticated
+  const authFile = path.join(os.homedir(), '.clix', 'auth.json');
+  if (!fs.existsSync(authFile)) {
+    console.error('\n⚠️  CLIX not authenticated');
+    console.error('   x-audit needs access to your Twitter/X account to fetch data.\n');
+    
+    const answer = await prompt('   Open browser to authenticate? [Y/n] ');
+    if (answer === 'n' || answer === 'no') {
+      throw new Error('Authentication required. Run: uvx --with clix0 clix auth login --browser chrome');
+    }
+    
+    console.log('\n   Opening browser for Twitter/X login...');
+    console.log('   (Log in, then return here)\n');
+    try {
+      execSync('uvx --with clix0 clix auth login --browser chrome', { 
+        stdio: 'inherit',
+        env: { ...process.env, PATH: `${os.homedir()}/.local/bin:${process.env.PATH}` }
+      });
+      console.log('   ✅ Authenticated!\n');
+    } catch (err) {
+      throw new Error('Authentication failed. Try manually: uvx --with clix0 clix auth login --browser chrome');
+    }
+  }
+}
+
 export async function scrape(handle, opts = {}) {
   const { limit = 1000, mode = 'followers' } = opts;
+
+  // Ensure uv and CLIX auth are set up
+  await ensureDependencies();
 
   // Write Python script to temp file
   const tmpScript = path.join(os.tmpdir(), `x-audit-fetch-${Date.now()}.py`);
@@ -93,9 +166,13 @@ print(f"Done: {len(result)} total", file=sys.stderr)
     }));
   } catch (err) {
     try { fs.unlinkSync(tmpScript); } catch {}
-    if (err.message?.includes('clix') || err.message?.includes('uvx')) {
-      throw new Error('CLIX not found. Install with: uv pip install clix0 && clix auth login --browser chrome');
+    const msg = err.message || '';
+    if (msg.includes('Rate limit') || msg.includes('429')) {
+      throw new Error('Twitter/X rate limited. Wait a few minutes and try again, or reduce --limit.');
     }
-    throw new Error(`Scraping failed: ${err.message?.substring(0, 200)}`);
+    if (msg.includes('clix') || msg.includes('uvx') || msg.includes('ModuleNotFoundError')) {
+      throw new Error('CLIX setup issue. Try: uvx --with clix0 clix auth login --browser chrome');
+    }
+    throw new Error(`Scraping failed: ${msg.substring(0, 200)}`);
   }
 }
