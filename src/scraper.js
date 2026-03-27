@@ -2,102 +2,115 @@ import { chromium } from 'playwright-chromium';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import readline from 'readline';
 
 const AUTH_DIR = path.join(os.homedir(), '.x-audit');
 const COOKIE_FILE = path.join(AUTH_DIR, 'cookies.json');
-
-async function waitForLogin(page) {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  console.log('\n🔐 Login required. A browser window will open.');
-  console.log('   Please log in to X/Twitter, then press Enter here.\n');
-  
-  await page.goto('https://x.com/login', { waitUntil: 'domcontentloaded' });
-  
-  await new Promise(resolve => {
-    rl.question('   Press Enter after logging in... ', () => {
-      rl.close();
-      resolve();
-    });
-  });
-
-  // Save cookies
-  fs.mkdirSync(AUTH_DIR, { recursive: true });
-  const cookies = await page.context().cookies();
-  fs.writeFileSync(COOKIE_FILE, JSON.stringify(cookies, null, 2));
-  console.log('   ✅ Cookies saved for future runs\n');
-}
 
 export async function scrape(handle, opts = {}) {
   const { limit = 500, headless = true } = opts;
   
   const hasCookies = fs.existsSync(COOKIE_FILE);
-  const needsLogin = !hasCookies;
+  
+  // Always show browser if no cookies (need login) or if user asked
+  const useHeadless = headless && hasCookies;
   
   const browser = await chromium.launch({
-    headless: needsLogin ? false : headless,
+    headless: useHeadless,
+    args: ['--disable-blink-features=AutomationControlled'],
   });
 
   const context = await browser.newContext({
     userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     viewport: { width: 1280, height: 900 },
+    locale: 'en-US',
+    timezoneId: 'America/New_York',
   });
 
-  // Load cookies if we have them
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => false });
+  });
+
+  // Load cookies if available
   if (hasCookies) {
     try {
       const cookies = JSON.parse(fs.readFileSync(COOKIE_FILE, 'utf-8'));
       await context.addCookies(cookies);
-    } catch {
-      // Bad cookies, will re-auth
-    }
+    } catch {}
   }
 
   const page = await context.newPage();
 
   // Navigate to following page
-  await page.goto(`https://x.com/${handle}/following`, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(2000);
+  await page.goto(`https://x.com/${handle}/following`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForTimeout(5000);
 
-  // Check if we need to log in
-  const loginNeeded = await page.evaluate(() => {
-    return document.querySelector('[data-testid="loginButton"]') !== null ||
-           document.querySelector('input[autocomplete="username"]') !== null ||
-           window.location.href.includes('/login');
-  });
+  // Check if we're actually on the following page or got redirected
+  const currentUrl = page.url();
+  const isLoggedIn = currentUrl.includes('/following');
+  
 
-  if (loginNeeded) {
-    await waitForLogin(page);
+
+  if (!isLoggedIn) {
+    if (useHeadless) {
+      await browser.close();
+      throw new Error('Authentication required. Run with --no-headless to log in interactively.');
+    }
+
+    // Navigate to login
+    console.log('\n🔐 Login required. Please log in to X in the browser window.');
+    console.log('   Waiting for you to complete login...\n');
+    
+    await page.goto('https://x.com/login', { waitUntil: 'domcontentloaded' });
+    
+    // Wait until URL shows we're logged in (home feed or any non-login page)
+    // Poll every 2 seconds for up to 5 minutes
+    let loggedIn = false;
+    for (let i = 0; i < 150; i++) {
+      await page.waitForTimeout(2000);
+      const url = page.url();
+      if (url.includes('/home') || url === 'https://x.com/' || (!url.includes('/login') && !url.includes('/i/flow'))) {
+        loggedIn = true;
+        break;
+      }
+    }
+
+    if (!loggedIn) {
+      await browser.close();
+      throw new Error('Login timed out. Please try again.');
+    }
+
+    console.log('   ✅ Logged in! Saving cookies...\n');
+
+    // Save cookies
+    fs.mkdirSync(AUTH_DIR, { recursive: true });
+    const cookies = await context.cookies();
+    fs.writeFileSync(COOKIE_FILE, JSON.stringify(cookies, null, 2));
+
+    // Now navigate to following page
     await page.goto(`https://x.com/${handle}/following`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(5000);
   }
 
   // Scroll and collect profiles
   const profiles = new Map();
   let noNewCount = 0;
-  const maxNoNew = 5; // Stop after 5 scrolls with no new profiles
+  const maxNoNew = 5;
   
+
   while (profiles.size < limit && noNewCount < maxNoNew) {
     const prevSize = profiles.size;
     
     const newProfiles = await page.evaluate(() => {
       const cells = document.querySelectorAll('[data-testid="UserCell"]');
+      if (cells.length === 0) return [];
       return Array.from(cells).map(cell => {
-        const nameEl = cell.querySelector('[dir="ltr"] > span');
-        const handleEl = cell.querySelectorAll('[dir="ltr"] > span');
-        const bioEl = cell.querySelector('[data-testid="UserCell"] > div > div:last-child > div:nth-child(2)');
-        
-        // Try to get the handle from the link
         const link = cell.querySelector('a[href^="/"]');
         const href = link?.getAttribute('href')?.replace('/', '') || '';
         
-        // Get all text content from the cell
-        const allText = cell.textContent || '';
-        
-        // Get display name
+        const nameEl = cell.querySelector('[dir="ltr"] > span');
         const displayName = nameEl?.textContent || '';
         
-        // Get bio - it's usually the last text block
+        // Get bio
         const divs = cell.querySelectorAll('div[dir="auto"]');
         let bio = '';
         for (const div of divs) {
@@ -107,25 +120,19 @@ export async function scrape(handle, opts = {}) {
           }
         }
         
-        // Check for verified badge
         const verified = cell.querySelector('[data-testid="icon-verified"]') !== null ||
                         cell.querySelector('svg[aria-label="Verified account"]') !== null;
         
-        return {
-          handle: href,
-          displayName,
-          bio,
-          verified,
-        };
+        return { handle: href, displayName, bio, verified };
       });
     });
+
 
     for (const p of newProfiles) {
       if (p.handle && !profiles.has(p.handle)) {
         profiles.set(p.handle, p);
         if (profiles.size % 50 === 0) {
-          process.stdout.write(`   ${profiles.size} profiles...`);
-          process.stdout.write('\r');
+          process.stdout.write(`\r   ${profiles.size} profiles...`);
         }
       }
     }
@@ -136,19 +143,21 @@ export async function scrape(handle, opts = {}) {
       noNewCount = 0;
     }
 
-    // Scroll down
     await page.evaluate(() => window.scrollBy(0, window.innerHeight * 2));
     await page.waitForTimeout(800 + Math.random() * 400);
   }
 
-  // Save updated cookies
+  if (profiles.size > 0) {
+    process.stdout.write('\r');
+  }
+
+  // Save cookies for next time
   try {
     fs.mkdirSync(AUTH_DIR, { recursive: true });
-    const cookies = await page.context().cookies();
+    const cookies = await context.cookies();
     fs.writeFileSync(COOKIE_FILE, JSON.stringify(cookies, null, 2));
   } catch {}
 
   await browser.close();
-
   return Array.from(profiles.values());
 }

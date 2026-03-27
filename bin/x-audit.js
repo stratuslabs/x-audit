@@ -27,7 +27,7 @@ program
     let profiles;
     try {
       profiles = await scrape(handle, {
-        limit: opts.limit,
+        limit: parseInt(opts.limit) || 500,
         headless: opts.headless !== false,
       });
     } catch (err) {
@@ -82,4 +82,4 @@ program
     }
   });
 
-program.parse();
+await program.parseAsync();
