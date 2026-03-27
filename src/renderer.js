@@ -1,5 +1,5 @@
 export function render(analysis) {
-  const { handle, total, verified, hasBio, locationsDetected, categories, locations, keywords, followerTiers = [], notable = [], insights = [], generatedAt } = analysis;
+  const { handle, total, verified, hasBio, locationsDetected, categories, locations, keywords, followerTiers = [], notable = [], benchmarks = [], insights = [], generatedAt } = analysis;
   
   const topCategory = categories.find(c => c.name !== 'Other') || categories[0];
   const topLocation = locations[0];
@@ -390,6 +390,33 @@ export function render(analysis) {
           ${n.bio ? `<div style="color: #71717a; font-size: 0.8rem; margin-top: 0.2rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${n.bio}</div>` : ''}
         </div>
       </div>`).join('')}
+    </div>
+  </div>
+  ` : ''}
+
+  ${benchmarks.length > 0 ? `
+  <div class="section">
+    <h2><span class="icon">📈</span> Your Audience vs X Platform</h2>
+    <div style="background: #18181b; border: 1px solid #27272a; border-radius: 12px; overflow: hidden;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+        <thead>
+          <tr style="border-bottom: 1px solid #27272a;">
+            <th style="text-align: left; padding: 0.75rem 1rem; color: #71717a; font-weight: 500;">Metric</th>
+            <th style="text-align: right; padding: 0.75rem 1rem; color: #71717a; font-weight: 500;">Your Audience</th>
+            <th style="text-align: right; padding: 0.75rem 1rem; color: #71717a; font-weight: 500;">X Platform</th>
+            <th style="text-align: right; padding: 0.75rem 1rem; color: #71717a; font-weight: 500;">Delta</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${benchmarks.map(b => `
+          <tr style="border-bottom: 1px solid #1e1e21;">
+            <td style="padding: 0.6rem 1rem; color: #fafafa;">${b.metric}</td>
+            <td style="text-align: right; padding: 0.6rem 1rem; color: #3b82f6; font-weight: 600;">${b.yours}</td>
+            <td style="text-align: right; padding: 0.6rem 1rem; color: #71717a;">${b.platform}</td>
+            <td style="text-align: right; padding: 0.6rem 1rem; color: #10b981; font-weight: 500;">${b.delta}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
     </div>
   </div>
   ` : ''}

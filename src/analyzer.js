@@ -184,6 +184,29 @@ export function analyze(profiles, handle) {
       verified: p.verified,
     }));
 
+  // Platform benchmarks (X/Twitter averages for context)
+  const benchmarks = [];
+  const designerPct = categories.find(c => c.name === 'Designer')?.pct || 0;
+  const devPct = categories.find(c => c.name === 'Developer')?.pct || 0;
+  const founderPct = categories.find(c => c.name === 'Founder/CEO')?.pct || 0;
+  const investorPct = categories.find(c => c.name === 'Investor')?.pct || 0;
+  const aiPct = categories.find(c => c.name === 'AI/ML')?.pct || 0;
+  
+  if (designerPct > 2) benchmarks.push({ metric: 'Designers', yours: `${designerPct}%`, platform: '~2%', delta: `${(designerPct / 2).toFixed(1)}x higher` });
+  if (devPct > 2) benchmarks.push({ metric: 'Developers / Engineers', yours: `${devPct}%`, platform: '~4%', delta: `${(devPct / 4).toFixed(1)}x higher` });
+  if (founderPct > 2) benchmarks.push({ metric: 'Founders / CEOs', yours: `${founderPct}%`, platform: '~1.5%', delta: `${(founderPct / 1.5).toFixed(1)}x higher` });
+  if (investorPct > 1) benchmarks.push({ metric: 'Investors / VCs', yours: `${investorPct}%`, platform: '~0.5%', delta: `${(investorPct / 0.5).toFixed(1)}x higher` });
+  if (aiPct > 2) benchmarks.push({ metric: 'AI / ML', yours: `${aiPct}%`, platform: '~1%', delta: `${(aiPct / 1).toFixed(1)}x higher` });
+  
+  const bioPct = Math.round((hasBio / total) * 100);
+  benchmarks.push({ metric: 'Has a bio', yours: `${bioPct}%`, platform: '~35%', delta: bioPct > 35 ? `${(bioPct / 35).toFixed(1)}x higher` : 'below avg' });
+  benchmarks.push({ metric: 'Verified accounts', yours: `${Math.round((verifiedCount / total) * 100)}%`, platform: '~2%', delta: `${(Math.round((verifiedCount / total) * 100) / 2).toFixed(1)}x higher` });
+  
+  if (locationsDetected > 0) {
+    const locPct = Math.round((locationsDetected / total) * 100);
+    benchmarks.push({ metric: 'Location in bio', yours: `${locPct}%`, platform: '~25%', delta: locPct > 25 ? `${(locPct / 25).toFixed(1)}x higher` : 'below avg' });
+  }
+
   // Generate insights
   const insights = [];
   const topCat = categories.find(c => c.name !== 'Other');
@@ -225,6 +248,7 @@ export function analyze(profiles, handle) {
     keywords,
     followerTiers,
     notable,
+    benchmarks,
     insights,
     generatedAt: new Date().toISOString(),
   };
