@@ -1,0 +1,25 @@
+{
+  "name": "x-audit",
+  "version": "0.1.0",
+  "description": "Analyze any X/Twitter user's following list. Beautiful shareable report via gui.new.",
+  "type": "module",
+  "bin": {
+    "x-audit": "./bin/x-audit.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "README.md"
+  ],
+  "keywords": ["twitter", "x", "audit", "followers", "following", "analytics", "gui.new"],
+  "author": "Stratus Labs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stratuslabs/x-audit"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "playwright-chromium": "^1.52.0"
+  }
+}
