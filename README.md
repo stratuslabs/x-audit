@@ -3,7 +3,7 @@
 Analyze any X/Twitter user's following list. One command → beautiful shareable report.
 
 ```bash
-npx x-audit @dylanfeltus
+npx x-audit @username
 ```
 
 ## What it does
@@ -22,7 +22,7 @@ No X/Twitter API key needed. No paid tier required.
 npx x-audit @username
 
 # Or install globally
-npm install -g x-audit
+npm i -g x-audit
 x-audit @username
 ```
 

@@ -7,7 +7,7 @@ export function render(analysis) {
 
   // Category bars
   const maxCatPct = categories[0]?.pct || 1;
-  const categoryBars = categories.slice(0, 10).map(c => {
+  const categoryBars = categories.slice(0, 20).map(c => {
     const barWidth = Math.round((c.pct / maxCatPct) * 100);
     const colors = {
       'Developer': '#3b82f6',
@@ -20,12 +20,31 @@ export function render(analysis) {
       'Investor': '#f97316',
       'AI/ML': '#14b8a6',
       'E-commerce / DTC': '#f472b6',
+      'E-commerce / DTC / Brand': '#f472b6',
+      'Art / Artist': '#c084fc',
       'Artist': '#c084fc',
       'Crypto / Web3': '#22d3ee',
+      'Crypto / Web3 / Blockchain': '#22d3ee',
       'Photographer': '#fbbf24',
+      'Photographer / Videographer': '#fbbf24',
       'Music': '#fb923c',
+      'Music / Musician': '#fb923c',
       'Journalist': '#a3e635',
+      'Journalist / Reporter': '#a3e635',
       'Agency': '#94a3b8',
+      'Agency / Studio Owner': '#94a3b8',
+      'Design / Designer': '#a855f7',
+      'Founder / Co-founder': '#f59e0b',
+      'Developer / Engineer': '#3b82f6',
+      'Product / Product Manager': '#06b6d4',
+      'Marketing / Marketer': '#10b981',
+      'CEO': '#ef4444',
+      'Writer / Author': '#8b5cf6',
+      'Investor / VC': '#f97316',
+      'Creator / Content Creator': '#ec4899',
+      'SaaS / Startup': '#818cf8',
+      'Freelancer / Consultant': '#34d399',
+      'Finance / Fintech': '#fbbf24',
       'Other': '#6b7280',
     };
     const color = colors[c.name] || '#6b7280';
