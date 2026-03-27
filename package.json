@@ -1,6 +1,6 @@
 {
   "name": "x-audit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Analyze any X/Twitter user's following list. Beautiful shareable report via gui.new.",
   "type": "module",
   "bin": {
@@ -11,7 +11,15 @@
     "src/",
     "README.md"
   ],
-  "keywords": ["twitter", "x", "audit", "followers", "following", "analytics", "gui.new"],
+  "keywords": [
+    "twitter",
+    "x",
+    "audit",
+    "followers",
+    "following",
+    "analytics",
+    "gui.new"
+  ],
   "author": "Stratus Labs",
   "license": "MIT",
   "repository": {
