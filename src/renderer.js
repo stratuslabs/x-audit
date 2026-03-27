@@ -488,3 +488,86 @@ export function render(analysis) {
 </body>
 </html>`;
 }
+
+export function renderSpam(analysis) {
+  const { handle, total, qualityBreakdown, flagged = [], generatedAt } = analysis;
+  const date = new Date(generatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>@${handle} — Spam Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #09090b; color: #fafafa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; line-height: 1.5; padding: 2rem; }
+  .container { max-width: 800px; margin: 0 auto; }
+  .header { text-align: center; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid #27272a; }
+  .header h1 { font-size: 1.75rem; font-weight: 700; }
+  .header h1 span { background: linear-gradient(135deg, #ef4444, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .header .sub { color: #71717a; font-size: 0.875rem; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+  .card { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 1.25rem; text-align: center; }
+  .card .label { font-size: 0.75rem; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+  .card .val { font-size: 2rem; font-weight: 700; }
+  .card .det { font-size: 0.8rem; color: #a1a1aa; margin-top: 0.25rem; }
+  .row { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem 1rem; border-bottom: 1px solid #1e1e21; }
+  .score { min-width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+  .high { background: #ef444422; color: #ef4444; }
+  .med { background: #f59e0b22; color: #f59e0b; }
+  .handle { font-weight: 600; color: #fafafa; font-size: 0.9rem; }
+  .reasons { color: #71717a; font-size: 0.8rem; margin-top: 0.15rem; }
+  .stats { color: #52525b; font-size: 0.75rem; margin-top: 0.1rem; }
+  .section { background: #18181b; border: 1px solid #27272a; border-radius: 12px; overflow: hidden; margin-bottom: 2rem; }
+  .section-header { padding: 1rem; border-bottom: 1px solid #27272a; font-weight: 600; font-size: 0.9rem; }
+  .footer { text-align: center; padding-top: 1.5rem; border-top: 1px solid #27272a; color: #52525b; font-size: 0.8rem; }
+  .footer a { color: #3b82f6; text-decoration: none; }
+  @media (max-width: 600px) { body { padding: 1rem; } .cards { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🛡️ <span>@${handle}</span> Spam Report</h1>
+    <div class="sub">${total.toLocaleString()} followers scanned · ${date}</div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="label">Clean</div>
+      <div class="val" style="color: #10b981;">${qualityBreakdown?.clean.pct || 0}%</div>
+      <div class="det">${qualityBreakdown?.clean.count.toLocaleString() || 0} accounts</div>
+    </div>
+    <div class="card">
+      <div class="label">Suspicious</div>
+      <div class="val" style="color: #f59e0b;">${qualityBreakdown?.suspicious.pct || 0}%</div>
+      <div class="det">${qualityBreakdown?.suspicious.count.toLocaleString() || 0} accounts</div>
+    </div>
+    <div class="card">
+      <div class="label">Low Quality / Bot</div>
+      <div class="val" style="color: #ef4444;">${qualityBreakdown?.lowQuality.pct || 0}%</div>
+      <div class="det">${qualityBreakdown?.lowQuality.count.toLocaleString() || 0} accounts</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">🚩 Flagged Accounts (${flagged.length})</div>
+    ${flagged.map(f => `
+    <div class="row">
+      <div class="score ${f.score >= 70 ? 'high' : 'med'}">${f.score}</div>
+      <div style="flex: 1; min-width: 0;">
+        <div class="handle">@${f.handle}</div>
+        <div class="reasons">${f.reasons.join(' · ')}</div>
+        <div class="stats">${f.followersCount.toLocaleString()} followers · ${f.followingCount.toLocaleString()} following${f.bio ? ' · ' + f.bio : ''}</div>
+      </div>
+    </div>`).join('')}
+  </div>
+
+  <div class="footer">
+    Report by <strong>x-audit</strong> · Hosted on <a href="https://gui.new">gui.new</a> · <a href="https://github.com/stratuslabs/x-audit">github.com/stratuslabs/x-audit</a>
+  </div>
+</div>
+</body>
+</html>`;
+}

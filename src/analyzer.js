@@ -308,7 +308,7 @@ export function analyze(profiles, handle) {
     notable,
     benchmarks,
     qualityBreakdown,
-    flagged: flagged.slice(0, 25),
+    flagged,
     insights,
     generatedAt: new Date().toISOString(),
   };

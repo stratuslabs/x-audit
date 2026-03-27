@@ -5,7 +5,7 @@ import { exec } from 'child_process';
 import os from 'os';
 import { scrape } from '../src/scraper.js';
 import { analyze } from '../src/analyzer.js';
-import { render } from '../src/renderer.js';
+import { render, renderSpam } from '../src/renderer.js';
 import { publish } from '../src/publisher.js';
 import fs from 'fs';
 
@@ -23,6 +23,7 @@ program
   .option('--json', 'Output raw JSON analysis')
   .option('--html <file>', 'Save HTML report locally')
   .option('--gui-key <key>', 'gui.new Pro API key for 30d expiry')
+  .option('--spam', 'Show only low-quality/bot accounts')
   .option('--no-gui', 'Skip publishing to gui.new')
   .action(async (handle, opts) => {
     handle = handle.replace(/^@/, '');
@@ -54,13 +55,13 @@ program
     const analysis = analyze(profiles, handle);
 
     if (opts.json) {
-      console.log(JSON.stringify(analysis, null, 2));
+      console.log(JSON.stringify(opts.spam ? { quality: analysis.qualityBreakdown, flagged: analysis.flagged } : analysis, null, 2));
       return;
     }
 
     // Step 3: Render
     console.log('🎨 Generating report...');
-    const html = render(analysis);
+    const html = opts.spam ? renderSpam(analysis) : render(analysis);
 
     if (opts.html) {
       fs.writeFileSync(opts.html, html);
