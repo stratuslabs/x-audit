@@ -6,7 +6,9 @@ export function render(analysis) {
   const date = new Date(generatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   // Category bars
+  const maxCatPct = categories[0]?.pct || 1;
   const categoryBars = categories.slice(0, 10).map(c => {
+    const barWidth = Math.round((c.pct / maxCatPct) * 100);
     const colors = {
       'Developer': '#3b82f6',
       'Designer': '#a855f7', 
@@ -17,6 +19,13 @@ export function render(analysis) {
       'Writer': '#8b5cf6',
       'Investor': '#f97316',
       'AI/ML': '#14b8a6',
+      'E-commerce / DTC': '#f472b6',
+      'Artist': '#c084fc',
+      'Crypto / Web3': '#22d3ee',
+      'Photographer': '#fbbf24',
+      'Music': '#fb923c',
+      'Journalist': '#a3e635',
+      'Agency': '#94a3b8',
       'Other': '#6b7280',
     };
     const color = colors[c.name] || '#6b7280';
@@ -24,7 +33,7 @@ export function render(analysis) {
       <div class="bar-row">
         <div class="bar-label">${c.name}</div>
         <div class="bar-track">
-          <div class="bar-fill" style="width: ${Math.max(c.pct, 2)}%; background: ${color}"></div>
+          <div class="bar-fill" style="width: ${Math.max(barWidth, 4)}%; background: ${color}"></div>
         </div>
         <div class="bar-value">${c.pct}%</div>
       </div>`;
